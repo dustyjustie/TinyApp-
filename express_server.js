@@ -1,10 +1,10 @@
 var express = require("express");
 var app = express();
 app.set("view engine", "ejs");
-// const bodyParser = require("body-parser");
-// const cookieParser = require("cookie-parser");
+const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 app.use(bodyParser.urlencoded());
-// app.use(cookieParser('warBdur7mw9exxemt3wW6wJh'));
+app.use(cookieParser('warBdur7mw9exxemt3wW6wJh'));
 var PORT = process.env.PORT || 8080; // default port 8080
 
 var urlDatabase = {
@@ -21,10 +21,10 @@ app.get("/", (req, res) => {
   res.end("Hello! " + req.signedCookies.loginName);
 });
 
-// app.post("/login", (req, res) => {
-//   res.cookie("loginName", req.body.username, { signed: true });
-//   res.redirect("/urls/new");
-// });
+app.post("/login", (req, res) => {
+  res.cookie("loginName", req.body.username, { signed: true });
+  res.redirect("/urls/new");
+});
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
