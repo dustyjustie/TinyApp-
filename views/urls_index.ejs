@@ -1,0 +1,24 @@
+<!-- <!DOCTYPE html> -->
+<html lang="en">
+<body>
+  <% include partials/_header %>
+  Here are the shortened URL's:
+  <ul>
+  <% for(var url in urls) {%>
+     <li>
+        <a href="/urls/<%= url %>"><%= url %></a> (<%= urls[url] %>)
+        <form method="POST" action="/urls/<%= url %>/delete">
+          <button type="submit">Delete</button>
+        </form>
+
+        <form method="POST" action="/urls/<%= url %>">
+          <button type="submit">Edit</button>
+        </form>
+     </li>
+
+  <% } %>
+  </ul>
+  <a href="/urls.json"> Click here to access the URLs in JSON </a><br/>
+  <a href="/urls/new">Click here to make a new short URL</a>
+</body>
+</html>

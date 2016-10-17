@@ -1,0 +1,14 @@
+<!-- <!DOCTYPE html> -->
+<html lang="en">
+<body>
+Here is your URL:
+<%= url %>
+  <form action="/urls/<%= shortUrl %>/edit" method="POST" style="margin:150px;">
+    <label for="editedUrl">Edit your new URL:</label>
+    <input id="editedUrl" type="text" name="editedUrl" placeholder="http://" style="width: 300px">
+    <input type="submit" value="Submit">
+    <br/>
+    <br/>
+    <a href="/urls"> Click here to see your links! </a><br/>
+</body>
+</html>
