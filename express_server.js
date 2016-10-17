@@ -3,6 +3,7 @@ var app = express();
 app.set("view engine", "ejs");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcrypt");
 app.use(bodyParser.urlencoded());
 app.use(cookieParser('warBdur7mw9exxemt3wW6wJh'));
 var PORT = process.env.PORT || 8080; // default port 8080
@@ -12,19 +13,84 @@ var urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const data = {
+  users: [
+    {
+      username: 'justin',
+      password: '$2a$04$wOM88anyXZgL0Rr13ey7Xu32dknWKigX7JGpW7Jr6gq05R5sHRdOK',
+      email: "justin@gmail.com"
+    }
+  ]
+};
+
 // app.use((req, res, next) => {
 //   req.cookies = new Cookies( req, res, { "keys": keys } )
 //   next();
 //  })
 
-app.get("/", (req, res) => {
-  res.end("Hello! " + req.signedCookies.loginName);
+// app.get("/", (req, res) => {
+//   res.end("Hello! " + req.signedCookies.loginName);
+// });
+
+//// Middleware that injects user into request object and template locals
+app.get("/welcome", (req, res) => {
+  var user = req.signedCookies.loginName;
+  var hash = bcrypt.hashSync('testing', 10);
+  console.log(hash);
+  res.render("urls_welcome", { user: user });
+});
+
+app.get("/create-account", (req, res) => {
+  res.render("urls_create")
 });
 
 app.post("/login", (req, res) => {
-  res.cookie("loginName", req.body.username, { signed: true });
-  res.redirect("/urls/new");
+  const usr = req.body.username;
+  const pwd = req.body.password;
+  //finds user by username. client is putting in "usr"
+  const user = data.users.find((user) => {return user.username === usr});
+  debugger;
+  bcrypt.compare(pwd, user.password, (err, matched) => {
+    if(matched) {
+      console.log('=====> password matched');
+      res.cookie("username", req.body.username, { signed: true });
+      res.redirect("/urls/new");
+    } else {
+      res.redirect("/welcome");
+    }
+  })
 });
+
+
+app.post("/create-account", (req, res) => {
+  bcrypt.hash(req.body.password, 10, (err, hash) => {
+    if(err) {
+      res.send("There was an error creating your account.");
+      return;
+    }
+    data.users.push({username: req.body.username, password: hash, email: req.body.email});
+    console.log("All users are: ", data.users);
+    res.redirect("/urls");
+  });
+});
+
+app.use((req, res, next) => {
+  if(!req.signedCookies.username) {
+    res.redirect("/welcome")
+  }
+  next();
+});
+
+app.get("/urls/new", (req, res) => {
+  let templateVars = {
+    username: req.signedCookies.username,
+    urls: urlDatabase,
+    user: data.users,
+  };
+  console.log("THIS IS HERE: ", req)
+  res.render("urls_new", templateVars);
+});
+
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
@@ -35,14 +101,15 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase };
+  let templateVars = {
+    urls: urlDatabase,
+    username: data.users[0].username,
+    input: req.body.username
+  };
   console.log(templateVars);
   res.render("urls_index", templateVars);
 });
 
-app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
-});
 
 app.post("/urls", (req, res) => {
   var newUrl = generateRandomString(6);
@@ -71,9 +138,14 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect('/urls')
 });
 
+app.post("/logout", (req, res) => {
+  res.cookie("username", "", {signed: true})
+  res.redirect("/welcome")
+})
+
 app.post("/urls/:id/edit", (req, res) => {
-  urlDatabase[req.params.id] = req.body.editedUrl
-  res.redirect('/urls')
+  urlDatabase[req.params.id] = req.body.editedUrl;
+  res.redirect('/urls');
 });
 
 app.listen(PORT, () => {
@@ -86,5 +158,4 @@ function generateRandomString () {
   for( var i=0; i < 6; i++ )
   random += possible.charAt(Math.floor(Math.random() * possible.length));
   return random;
-
 }
