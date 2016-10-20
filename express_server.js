@@ -23,17 +23,12 @@ const data = {
   ]
 };
 
-// app.use((req, res, next) => {
-//   req.cookies = new Cookies( req, res, { "keys": keys } )
-//   next();
-//  })
-
-// app.get("/", (req, res) => {
-//   res.end("Hello! " + req.signedCookies.loginName);
-// });
-
 //// Middleware that injects user into request object and template locals
-app.get("/welcome", (req, res) => {
+app.get("/", (req, res) => {
+  res.redirect("/login")
+});
+
+app.get("/login", (req, res) => {
   var user = req.signedCookies.loginName;
   var hash = bcrypt.hashSync('testing', 10);
   console.log(hash);
@@ -49,16 +44,26 @@ app.post("/login", (req, res) => {
   const pwd = req.body.password;
   //finds user by username. client is putting in "usr"
   const user = data.users.find((user) => {return user.username === usr});
-  debugger;
+
   bcrypt.compare(pwd, user.password, (err, matched) => {
     if(matched) {
       console.log('=====> password matched');
       res.cookie("username", req.body.username, { signed: true });
       res.redirect("/urls/new");
     } else {
-      res.redirect("/welcome");
+      res.redirect("/login");
     }
   })
+});
+
+app.get("/u/:id", (req, res) => {
+  var shortUrl = req.params.id;
+
+  if(urlDatabase[shortUrl]) {
+    res.redirect(urlDatabase[shortUrl]);
+  } else {
+    res.redirect('/urls');
+  }
 });
 
 
@@ -70,13 +75,13 @@ app.post("/create-account", (req, res) => {
     }
     data.users.push({username: req.body.username, password: hash, email: req.body.email});
     console.log("All users are: ", data.users);
-    res.redirect("/urls");
+    res.redirect("/login");
   });
 });
 
 app.use((req, res, next) => {
   if(!req.signedCookies.username) {
-    res.redirect("/welcome")
+    res.redirect("/login")
   }
   next();
 });
@@ -87,7 +92,6 @@ app.get("/urls/new", (req, res) => {
     urls: urlDatabase,
     user: data.users,
   };
-  console.log("THIS IS HERE: ", req)
   res.render("urls_new", templateVars);
 });
 
@@ -103,7 +107,7 @@ app.get("/hello", (req, res) => {
 app.get("/urls", (req, res) => {
   let templateVars = {
     urls: urlDatabase,
-    username: data.users[0].username,
+    username: req.signedCookies.username,
     input: req.body.username
   };
   console.log(templateVars);
@@ -113,19 +117,12 @@ app.get("/urls", (req, res) => {
 
 app.post("/urls", (req, res) => {
   var newUrl = generateRandomString(6);
-  urlDatabase[newUrl] = req.body.longURL  // debug statement to see POST parameters
+  urlDatabase[newUrl] = req.body.longURL;  // debug statement to see POST parameters
   res.redirect("/urls/" + newUrl);         // Respond with 'Ok' (we will replace this)
 });
 
-// app.post("/urls", (req, res) => {
-//   res.direct("/urls");
-// });
-
-
-// "/urs/:keys/:OTHERSHIT"
 app.get("/urls/:id", (req, res) => {
   let url = urlDatabase[req.params.id];
-  console.log(url);
   res.render("urls_show", {
     url: url,
     shortUrl: req.params.id
@@ -133,14 +130,13 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  // Do deleting here
   delete urlDatabase[req.params.id];
   res.redirect('/urls')
 });
 
 app.post("/logout", (req, res) => {
   res.cookie("username", "", {signed: true})
-  res.redirect("/welcome")
+  res.redirect("/login")
 })
 
 app.post("/urls/:id/edit", (req, res) => {
